@@ -19,9 +19,9 @@
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuário</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Solicitante</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo Solicitado</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mensagem</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Investimento</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                     <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
@@ -31,21 +31,25 @@
                                 @forelse($requests as $request)
                                 <tr>
                                     <td class="px-6 py-4 whitespace-nowrap">
+                                        {{-- Lógica corrigida: Mostra dados do usuário se existir, senão mostra dados do formulário --}}
                                         @if($request->user)
                                             <div class="text-sm font-medium text-gray-900">{{ $request->user->name }}</div>
                                             <div class="text-sm text-gray-500">{{ $request->user->email }}</div>
+                                            <span class="text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">Usuário Existente</span>
                                         @else
-                                            <div class="text-sm font-medium text-red-600">Usuário Deletado</div>
+                                            <div class="text-sm font-medium text-gray-900">{{ $request->name }}</div>
                                             <div class="text-sm text-gray-500">{{ $request->email }}</div>
+                                            <span class="text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded-full">Novo Cadastro</span>
                                         @endif
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                                            {{ $request->requested_role === 'developer' ? 'Developer' : 'Cliente' }}
+                                            {{ ucfirst($request->investor_type ?? $request->requested_role) }}
                                         </span>
                                     </td>
-                                    <td class="px-6 py-4">
-                                        <div class="text-sm text-gray-900 max-w-xs">{{ Str::limit($request->message, 100) }}</div>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">{{ $request->investment_amount ?? '-' }}</div>
+                                        <div class="text-xs text-gray-500">{{ $request->country ?? '' }}</div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {{ $request->created_at->format('d/m/Y H:i') }}
@@ -70,11 +74,13 @@
                                             <form method="POST" action="{{ route('admin.access-requests.approve', $request) }}" class="inline">
                                                 @csrf
                                                 @method('PATCH')
-                                                <button type="submit" class="text-green-600 hover:text-green-900 mr-3">Aprovar</button>
+                                                <button type="submit" class="text-green-600 hover:text-green-900 mr-3" onclick="return confirm('Deseja aprovar este usuário? Se for novo, uma conta será criada.')">Aprovar</button>
                                             </form>
                                             <button onclick="openRejectModal({{ $request->id }})" class="text-red-600 hover:text-red-900">Rejeitar</button>
                                         @else
-                                            <span class="text-gray-400">-</span>
+                                            <span class="text-gray-400">
+                                                {{ $request->reviewer ? 'Avaliado por ' . $request->reviewer->name : 'Finalizado' }}
+                                            </span>
                                         @endif
                                     </td>
                                 </tr>
@@ -89,7 +95,6 @@
                         </table>
                     </div>
 
-                    <!-- Pagination -->
                     <div class="mt-4">
                         {{ $requests->links() }}
                     </div>
@@ -98,7 +103,6 @@
         </div>
     </div>
 
-    <!-- Reject Modal -->
     <div id="rejectModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
         <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
             <div class="mt-3">
@@ -145,7 +149,6 @@
             document.getElementById('rejection_reason').value = '';
         }
 
-        // Close modal when clicking outside
         document.getElementById('rejectModal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closeRejectModal();

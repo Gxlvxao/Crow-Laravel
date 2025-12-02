@@ -29,6 +29,19 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        // LÓGICA DE REDIRECIONAMENTO INTELIGENTE
+        $user = $request->user();
+
+        if ($user->role === 'admin') {
+            return redirect()->route('admin.dashboard');
+        }
+
+        if ($user->role === 'developer') {
+            // Se quiser que o developer vá para uma área específica, mude aqui
+            return redirect()->route('properties.my'); 
+        }
+
+        // Cliente padrão
         return redirect()->intended(RouteServiceProvider::HOME);
     }
 
