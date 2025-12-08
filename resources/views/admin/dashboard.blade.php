@@ -22,10 +22,30 @@
             <div class="bg-white overflow-hidden shadow-sm rounded-xl border border-gray-100 hover:shadow-lg transition-all duration-300">
                 <div class="p-6">
                     <div class="flex items-center justify-between mb-4">
+                        <div class="bg-orange-50 rounded-lg p-3">
+                            <svg class="h-6 w-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+                        </div>
+                        @if($stats['pending_properties'] > 0)
+                            <span class="text-xs font-semibold text-orange-600 bg-orange-100 px-2 py-1 rounded-full animate-pulse">{{ __('messages.action_needed') }}</span>
+                        @endif
+                    </div>
+                    <div class="text-3xl font-bold text-graphite mb-1">{{ $stats['pending_properties'] }}</div>
+                    <div class="text-sm text-gray-500 font-medium">Imóveis em Análise</div>
+                </div>
+                <a href="{{ route('admin.properties.pending') }}" class="block bg-gray-50 px-6 py-3 text-sm text-accent font-semibold hover:bg-gray-100 transition-colors">
+                    {{ __('messages.review') }} &rarr;
+                </a>
+            </div>
+
+            <div class="bg-white overflow-hidden shadow-sm rounded-xl border border-gray-100 hover:shadow-lg transition-all duration-300">
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-4">
                         <div class="bg-yellow-50 rounded-lg p-3">
                             <svg class="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
                         </div>
-                        <span class="text-xs font-semibold text-yellow-600 bg-yellow-100 px-2 py-1 rounded-full">{{ __('messages.action_needed') }}</span>
+                        @if($stats['pending_requests'] > 0)
+                            <span class="text-xs font-semibold text-yellow-600 bg-yellow-100 px-2 py-1 rounded-full">{{ __('messages.action_needed') }}</span>
+                        @endif
                     </div>
                     <div class="text-3xl font-bold text-graphite mb-1">{{ $stats['pending_requests'] }}</div>
                     <div class="text-sm text-gray-500 font-medium">{{ __('messages.pending_requests') }}</div>
@@ -38,31 +58,19 @@
             <div class="bg-white overflow-hidden shadow-sm rounded-xl border border-gray-100 hover:shadow-lg transition-all duration-300">
                 <div class="p-6">
                     <div class="flex items-center justify-between mb-4">
-                        <div class="bg-green-50 rounded-lg p-3">
-                            <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
-                        </div>
-                    </div>
-                    <div class="text-3xl font-bold text-graphite mb-1">{{ $stats['published_properties'] }}</div>
-                    <div class="text-sm text-gray-500 font-medium">{{ __('messages.active_properties') }}</div>
-                </div>
-                <a href="{{ route('admin.properties') }}" class="block bg-gray-50 px-6 py-3 text-sm text-accent font-semibold hover:bg-gray-100 transition-colors">
-                    {{ __('messages.manage_catalog') }} &rarr;
-                </a>
-            </div>
-
-            <div class="bg-white overflow-hidden shadow-sm rounded-xl border border-gray-100 hover:shadow-lg transition-all duration-300">
-                <div class="p-6">
-                    <div class="flex items-center justify-between mb-4">
                         <div class="bg-blue-50 rounded-lg p-3">
                             <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                         </div>
+                        @if($stats['exclusive_pending'] > 0)
+                            <span class="text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded-full">{{ $stats['exclusive_pending'] }} pendentes</span>
+                        @endif
                     </div>
                     <div class="text-3xl font-bold text-graphite mb-1">{{ $stats['developers'] }}</div>
-                    <div class="text-sm text-gray-500 font-medium">{{ __('messages.total_partners') }}</div>
+                    <div class="text-sm text-gray-500 font-medium">{{ __('messages.partners') }}</div>
                 </div>
-                <div class="block bg-gray-50 px-6 py-3 text-sm text-gray-400 font-medium">
-                    {{ __('messages.partners_desc') }}
-                </div>
+                <a href="{{ route('admin.exclusive-requests') }}" class="block bg-gray-50 px-6 py-3 text-sm text-gray-400 font-medium hover:bg-gray-100 hover:text-accent transition-colors">
+                    Carteiras &rarr;
+                </a>
             </div>
 
             <div class="bg-white overflow-hidden shadow-sm rounded-xl border border-gray-100 hover:shadow-lg transition-all duration-300">
@@ -76,16 +84,16 @@
                     <div class="text-sm text-gray-500 font-medium">{{ __('messages.total_investors') }}</div>
                 </div>
                 <div class="block bg-gray-50 px-6 py-3 text-sm text-gray-400 font-medium">
-                    {{ __('messages.investors_desc') }}
+                    Carteira Global
                 </div>
             </div>
         </div>
-
+        
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
             <div class="lg:col-span-2">
                 <div class="bg-white shadow-sm rounded-xl border border-gray-100 h-full overflow-hidden">
                     <div class="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                        <h3 class="text-lg font-bold text-graphite font-heading">{{ __('messages.new_access_requests') ?? 'Novos Pedidos' }}</h3>
+                        <h3 class="text-lg font-bold text-graphite font-heading">{{ __('messages.new_access_requests') }}</h3>
                         @if($stats['pending_requests'] > 0)
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 animate-pulse">
                                 {{ $stats['pending_requests'] }} novos
@@ -105,35 +113,22 @@
                                 @forelse($recentRequests as $request)
                                 <tr class="hover:bg-gray-50 transition-colors">
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="flex items-center">
-                                            <div>
-                                                <div class="text-sm font-medium text-gray-900">
-                                                    {{ $request->user ? $request->user->name : $request->name }}
-                                                </div>
-                                                <div class="text-sm text-gray-500">
-                                                    {{ $request->user ? $request->user->email : $request->email }}
-                                                </div>
-                                            </div>
-                                        </div>
+                                        <div class="text-sm font-medium text-gray-900">{{ $request->name }}</div>
+                                        <div class="text-sm text-gray-500">{{ $request->email }}</div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $request->investor_type === 'developer' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800' }}">
-                                            {{ ucfirst($request->investor_type ?? $request->requested_role) }}
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                            {{ ucfirst($request->investor_type) }}
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <a href="{{ route('admin.access-requests') }}" class="text-accent hover:text-accent/80 font-semibold">{{ __('messages.review') }}</a>
+                                        <a href="{{ route('admin.access-requests.show', $request) }}" class="text-accent hover:text-accent/80 font-semibold">{{ __('messages.review') }}</a>
                                     </td>
                                 </tr>
                                 @empty
                                 <tr>
                                     <td colspan="3" class="px-6 py-12 text-center text-gray-500 text-sm">
-                                        <div class="flex flex-col items-center justify-center">
-                                            <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
-                                                <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                                            </div>
-                                            <p class="font-medium text-gray-900">{{ __('messages.all_clear') }}</p>
-                                        </div>
+                                        {{ __('messages.all_clear') }}
                                     </td>
                                 </tr>
                                 @endforelse
@@ -155,21 +150,12 @@
                                 <div class="px-6 py-4">
                                     <div class="flex items-center justify-between">
                                         <p class="text-sm font-medium text-gray-900 group-hover:text-accent truncate transition-colors">{{ Str::limit($property->title, 25) }}</p>
-                                        <div class="ml-2 flex-shrink-0 flex">
-                                            <p class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $property->status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600' }}">
-                                                {{ $property->status === 'active' ? 'Ativo' : ucfirst($property->status) }}
-                                            </p>
-                                        </div>
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $property->status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600' }}">
+                                            {{ $property->status === 'active' ? 'Ativo' : ucfirst($property->status) }}
+                                        </span>
                                     </div>
-                                    <div class="mt-2 sm:flex sm:justify-between">
-                                        <div class="sm:flex">
-                                            <p class="flex items-center text-xs text-gray-500">
-                                                {{ $property->city }}
-                                            </p>
-                                        </div>
-                                        <div class="mt-2 flex items-center text-xs font-medium text-graphite sm:mt-0">
-                                            {{ $property->formatted_price }}
-                                        </div>
+                                    <div class="mt-2 text-xs text-gray-500">
+                                        {{ $property->city }} • {{ $property->formatted_price }}
                                     </div>
                                 </div>
                             </a>
@@ -180,21 +166,6 @@
                         </li>
                         @endforelse
                     </ul>
-                    <div class="bg-gray-50 p-4 border-t border-gray-100">
-                        <a href="{{ route('admin.properties') }}" class="flex items-center justify-center w-full px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors">
-                            {{ __('messages.view_all') }}
-                        </a>
-                    </div>
-                </div>
-
-                <div class="bg-gradient-to-br from-graphite to-gray-800 shadow-sm rounded-xl text-white p-6 relative overflow-hidden">
-                    <div class="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 rounded-full bg-white/5 blur-2xl"></div>
-                    <h3 class="text-lg font-bold font-heading mb-2 relative z-10">{{ __('messages.system_status') }}</h3>
-                    <p class="text-gray-300 text-sm mb-4 relative z-10">{{ __('messages.system_ok') }}</p>
-                    <div class="text-xs text-gray-400 border-t border-gray-600 pt-3 relative z-10 flex justify-between">
-                        <span>Laravel v{{ Illuminate\Foundation\Application::VERSION }}</span>
-                        <span>PHP v{{ PHP_VERSION }}</span>
-                    </div>
                 </div>
             </div>
         </div>

@@ -38,6 +38,7 @@
                                    class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-150 {{ request()->routeIs('admin.dashboard') ? 'border-accent text-white' : 'border-transparent text-gray-300 hover:text-white hover:border-gray-500' }}">
                                     {{ __('messages.overview') }}
                                 </a>
+                                
                                 <a href="{{ route('admin.access-requests') }}" 
                                    class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-150 {{ request()->routeIs('admin.access-requests') ? 'border-accent text-white' : 'border-transparent text-gray-300 hover:text-white hover:border-gray-500' }}">
                                     {{ __('messages.requests') }}
@@ -48,6 +49,7 @@
                                         <span class="ml-2 bg-yellow-500 text-white text-[10px] px-1.5 py-0.5 rounded-full animate-pulse">{{ $pendingCount }}</span>
                                     @endif
                                 </a>
+
                                 <a href="{{ route('admin.exclusive-requests') }}" 
                                    class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-150 {{ request()->routeIs('admin.exclusive-requests') ? 'border-accent text-white' : 'border-transparent text-gray-300 hover:text-white hover:border-gray-500' }}">
                                     {{ __('messages.wallets') }}
@@ -58,6 +60,18 @@
                                         <span class="ml-2 bg-blue-500 text-white text-[10px] px-1.5 py-0.5 rounded-full animate-pulse">{{ $exclusivePending }}</span>
                                     @endif
                                 </a>
+
+                                <a href="{{ route('admin.properties.pending') }}" 
+                                   class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-150 {{ request()->routeIs('admin.properties.pending') ? 'border-accent text-white' : 'border-transparent text-gray-300 hover:text-white hover:border-gray-500' }}">
+                                    Moderação
+                                    @php
+                                        $pendingProperties = \App\Models\Property::where('status', 'pending_review')->count();
+                                    @endphp
+                                    @if($pendingProperties > 0)
+                                        <span class="ml-2 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full animate-pulse">{{ $pendingProperties }}</span>
+                                    @endif
+                                </a>
+
                                 <a href="{{ route('admin.properties') }}" 
                                    class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-150 {{ request()->routeIs('admin.properties') ? 'border-accent text-white' : 'border-transparent text-gray-300 hover:text-white hover:border-gray-500' }}">
                                     {{ __('messages.properties') }}
