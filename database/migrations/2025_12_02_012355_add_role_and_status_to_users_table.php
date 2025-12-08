@@ -13,7 +13,8 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             $table->enum('role', ['admin', 'developer', 'client'])->default('client')->after('email');
-            $table->enum('status', ['active', 'inactive', 'suspended'])->default('active')->after('role');
+            // ADICIONADO 'pending' NA LISTA ABAIXO
+            $table->enum('status', ['active', 'inactive', 'suspended', 'pending'])->default('active')->after('role');
             $table->timestamp('access_expires_at')->nullable()->after('status');
         });
     }

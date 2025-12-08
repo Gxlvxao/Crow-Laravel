@@ -16,8 +16,9 @@ class AdminController extends Controller
     {
         $stats = [
             'pending_requests' => AccessRequest::where('status', 'pending')->count(),
+            'exclusive_pending' => User::whereNotNull('developer_id')->where('status', 'pending')->count(),
             'total_properties' => Property::count(),
-            'published_properties' => Property::where('status', 'published')->count(),
+            'published_properties' => Property::where('status', 'active')->count(),
             'total_users' => User::where('role', '!=', 'admin')->count(),
             'developers' => User::where('role', 'developer')->count(),
             'clients' => User::where('role', 'client')->count(),
@@ -47,6 +48,29 @@ class AdminController extends Controller
         return view('admin.access-requests', compact('requests'));
     }
 
+    public function exclusiveRequests()
+    {
+        $pendingClients = User::with('developer')
+            ->whereNotNull('developer_id')
+            ->where('status', 'pending')
+            ->orderBy('created_at', 'desc')
+            ->paginate(20);
+
+        return view('admin.exclusive-requests', compact('pendingClients'));
+    }
+
+    public function approveExclusiveRequest(User $user)
+    {
+        $user->update(['status' => 'active']);
+        return redirect()->back()->with('success', 'Cliente aprovado! O Developer já pode conceder acessos.');
+    }
+
+    public function rejectExclusiveRequest(User $user)
+    {
+        $user->delete();
+        return redirect()->back()->with('success', 'Cadastro rejeitado e removido.');
+    }
+
     public function showAccessRequest(AccessRequest $accessRequest)
     {
         return view('admin.access-requests-show', compact('accessRequest'));
@@ -73,7 +97,7 @@ class AdminController extends Controller
                 $accessRequest->user_id = $user->id;
             }
             
-            $message .= " Perfil vinculado. O usuário já possui senha definida.";
+            $message .= " Perfil vinculado.";
         } else {
             $tempPassword = Str::random(10);
             
@@ -125,86 +149,47 @@ class AdminController extends Controller
         $newStatus = $user->status === 'active' ? 'inactive' : 'active';
         $user->update(['status' => $newStatus]);
 
-        $statusMsg = $newStatus === 'active' ? 'desbloqueado' : 'bloqueado';
-        return redirect()->back()->with('success', "Usuário {$statusMsg} com sucesso.");
+        return redirect()->back()->with('success', "Status alterado com sucesso.");
     }
 
     public function resetUserPassword(User $user)
     {
         $newPassword = Str::random(12);
-        
-        $user->update([
-            'password' => Hash::make($newPassword),
-        ]);
-
-        return redirect()->back()->with('success', "Senha resetada com sucesso! Nova senha: {$newPassword}");
+        $user->update(['password' => Hash::make($newPassword)]);
+        return redirect()->back()->with('success', "Senha resetada: {$newPassword}");
     }
 
     public function deleteUser(User $user)
     {
         if ($user->id === auth()->id()) {
-            return redirect()->back()->with('error', 'Você não pode excluir sua própria conta.');
+            return redirect()->back()->with('error', 'Ação não permitida.');
         }
-
         $user->delete();
-
-        return redirect()->route('admin.access-requests')->with('success', 'Usuário excluído permanentemente.');
+        return redirect()->back()->with('success', 'Usuário excluído.');
     }
 
     public function properties(Request $request)
     {
         $query = Property::with('owner');
 
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->filled('city')) {
-            $query->where('city', $request->city);
-        }
-
-        if ($request->filled('is_exclusive')) {
-            $query->where('is_exclusive', $request->is_exclusive);
-        }
-
-        if ($request->filled('type')) {
-            $query->where('type', $request->type);
-        }
-
-        if ($request->filled('transaction_type')) {
-            $query->where('transaction_type', $request->transaction_type);
-        }
-
-        if ($request->filled('min_price')) {
-            $query->where('price', '>=', $request->min_price);
-        }
-        if ($request->filled('max_price')) {
-            $query->where('price', '<=', $request->max_price);
-        }
-
+        if ($request->filled('status')) $query->where('status', $request->status);
         if ($request->filled('search')) {
             $query->where(function($q) use ($request) {
                 $q->where('title', 'like', '%' . $request->search . '%')
-                  ->orWhere('description', 'like', '%' . $request->search . '%')
                   ->orWhere('city', 'like', '%' . $request->search . '%');
             });
         }
 
         $properties = $query->orderBy('created_at', 'desc')->paginate(20);
-
         return view('admin.properties', compact('properties'));
     }
 
     public function deleteProperty(Property $property)
     {
         if ($property->images) {
-            foreach ($property->images as $image) {
-                Storage::disk('public')->delete($image);
-            }
+            foreach ($property->images as $image) Storage::disk('public')->delete($image);
         }
-
         $property->delete();
-
-        return redirect()->back()->with('success', 'Imóvel excluído com sucesso!');
+        return redirect()->back()->with('success', 'Imóvel excluído!');
     }
 }

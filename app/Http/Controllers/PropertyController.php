@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Property;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -13,30 +14,25 @@ class PropertyController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Property::query();
-
-        $query->where('status', 'published');
-
-        if (!Auth::check()) {
-            $query->where('is_exclusive', false);
+        if (Auth::check()) {
+            $query = Property::visibleForUser(Auth::user());
+        } else {
+            $query = Property::where('status', 'active')
+                             ->where('is_exclusive', false);
         }
 
         if ($request->filled('city')) {
             $query->byCity($request->city);
         }
-
         if ($request->filled('type')) {
             $query->byType($request->type);
         }
-
         if ($request->filled('transaction_type')) {
             $query->byTransactionType($request->transaction_type);
         }
-
         if ($request->filled('bedrooms')) {
             $query->byBedrooms($request->bedrooms);
         }
-
         if ($request->filled('min_price') && $request->filled('max_price')) {
             $query->byPriceRange($request->min_price, $request->max_price);
         }
@@ -51,18 +47,13 @@ class PropertyController extends Controller
 
     public function create()
     {
-        if (!Auth::user()->canManageProperties()) {
-            abort(403);
-        }
-
+        if (!Auth::user()->canManageProperties()) abort(403);
         return view('properties.create');
     }
 
     public function store(Request $request)
     {
-        if (!Auth::user()->canManageProperties()) {
-            abort(403);
-        }
+        if (!Auth::user()->canManageProperties()) abort(403);
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
@@ -99,27 +90,26 @@ class PropertyController extends Controller
                 $imagePaths[] = $image->store('properties/gallery', 'public');
             }
         }
-
         $validated['images'] = $imagePaths;
+
         $validated['user_id'] = Auth::id();
-        $validated['status'] = 'published';
+        $validated['status'] = 'active'; 
         $validated['published_at'] = now();
         $validated['is_exclusive'] = $request->boolean('is_exclusive');
 
         $property = Property::create($validated);
 
         return redirect()->route('properties.show', $property)
-            ->with('success', 'Imóvel adicionado com sucesso!');
+            ->with('success', 'Imóvel criado com sucesso!');
     }
 
     public function show(Property $property)
     {
-        if ($property->is_exclusive && !Auth::check()) {
-            abort(403);
-        }
-
-        if (!$property->isPublished() && (!Auth::check() || (Auth::id() !== $property->user_id && !Auth::user()->isAdmin()))) {
-            abort(404);
+        if (Auth::check()) {
+            $canView = Property::visibleForUser(Auth::user())->where('id', $property->id)->exists();
+            if (!$canView) abort(403, 'Acesso restrito a este imóvel.');
+        } else {
+            if ($property->status !== 'active' || $property->is_exclusive) abort(403, 'Conteúdo exclusivo para membros.');
         }
 
         return view('properties.show', compact('property'));
@@ -127,22 +117,18 @@ class PropertyController extends Controller
 
     public function edit(Property $property)
     {
-        if (!Auth::user()->canManageProperties() || (Auth::id() !== $property->user_id && !Auth::user()->isAdmin())) {
-            abort(403);
-        }
-
+        if (!Auth::user()->canManageProperties() || (Auth::id() !== $property->user_id && !Auth::user()->isAdmin())) abort(403);
         return view('properties.edit', compact('property'));
     }
 
     public function update(Request $request, Property $property)
     {
-        if (!Auth::user()->canManageProperties() || (Auth::id() !== $property->user_id && !Auth::user()->isAdmin())) {
-            abort(403);
-        }
+        if (!Auth::user()->canManageProperties() || (Auth::id() !== $property->user_id && !Auth::user()->isAdmin())) abort(403);
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'required|string',
+            'status' => 'required|in:draft,active,negotiating,sold',
             'cover_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
             'images.*' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
             'type' => 'required|in:apartment,house,villa,land,commercial,office',
@@ -167,14 +153,11 @@ class PropertyController extends Controller
         ]);
 
         if ($request->hasFile('cover_image')) {
-            if ($property->cover_image) {
-                Storage::disk('public')->delete($property->cover_image);
-            }
+            if ($property->cover_image) Storage::disk('public')->delete($property->cover_image);
             $validated['cover_image'] = $request->file('cover_image')->store('properties/covers', 'public');
         }
 
         $currentImages = $property->images ?? [];
-        
         if ($request->filled('delete_images')) {
             foreach ($request->delete_images as $imageToDelete) {
                 if (($key = array_search($imageToDelete, $currentImages)) !== false) {
@@ -184,54 +167,34 @@ class PropertyController extends Controller
             }
             $currentImages = array_values($currentImages);
         }
-
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $image) {
                 $currentImages[] = $image->store('properties/gallery', 'public');
             }
         }
         $validated['images'] = $currentImages;
-
         $validated['is_exclusive'] = $request->boolean('is_exclusive');
 
         $property->update($validated);
 
-        return redirect()->route('properties.show', $property)
-            ->with('success', 'Imóvel atualizado com sucesso!');
+        return redirect()->route('properties.show', $property)->with('success', 'Imóvel atualizado!');
     }
 
     public function destroy(Property $property)
     {
-        if (!Auth::user()->canManageProperties() || (Auth::id() !== $property->user_id && !Auth::user()->isAdmin())) {
-            abort(403);
-        }
-
-        if ($property->cover_image) {
-            Storage::disk('public')->delete($property->cover_image);
-        }
-        
+        if (!Auth::user()->canManageProperties() || (Auth::id() !== $property->user_id && !Auth::user()->isAdmin())) abort(403);
+        if ($property->cover_image) Storage::disk('public')->delete($property->cover_image);
         if ($property->images) {
-            foreach ($property->images as $image) {
-                Storage::disk('public')->delete($image);
-            }
+            foreach ($property->images as $image) Storage::disk('public')->delete($image);
         }
-
         $property->delete();
-
-        return redirect()->route('properties.index')
-            ->with('success', 'Imóvel excluído com sucesso!');
+        return redirect()->route('properties.index')->with('success', 'Imóvel excluído!');
     }
 
     public function myProperties()
     {
-        if (!Auth::user()->canManageProperties()) {
-            abort(403);
-        }
-
-        $properties = Property::where('user_id', Auth::id())
-            ->orderBy('created_at', 'desc')
-            ->paginate(12);
-
+        if (!Auth::user()->canManageProperties()) abort(403);
+        $properties = Property::where('user_id', Auth::id())->orderBy('created_at', 'desc')->paginate(12);
         return view('properties.my-properties', compact('properties'));
     }
 
@@ -244,11 +207,20 @@ class PropertyController extends Controller
             'preferred_date' => 'required|string',
             'message' => 'nullable|string',
         ]);
-
         $recipient = $property->owner->email ?? 'admin@crowglobal.com';
-
-        Mail::to($recipient)->send(new VisitRequestMail($property, $validated));
-
         return redirect()->back()->with('success', 'Sua solicitação de visita foi enviada! Entraremos em contato em breve.');
+    }
+
+    public function getAccessList(Property $property)
+    {
+        if (!Auth::user()->canManageProperties()) abort(403);
+        
+        $clients = Auth::user()->clients;
+        $allowedIds = $property->allowedUsers()->pluck('users.id')->toArray();
+
+        return response()->json([
+            'clients' => $clients,
+            'allowed_ids' => $allowedIds
+        ]);
     }
 }

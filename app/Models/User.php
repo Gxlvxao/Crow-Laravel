@@ -2,96 +2,62 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'name',
         'email',
         'password',
         'role',
         'status',
-        'access_expires_at',
+        'developer_id',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
-        'access_expires_at' => 'datetime',
     ];
 
-    /**
-     * Check if user is admin
-     */
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
     }
 
-    /**
-     * Check if user is developer
-     */
-    public function isDeveloper(): bool
-    {
-        return $this->role === 'developer';
-    }
-
-    /**
-     * Check if user is client
-     */
-    public function isClient(): bool
-    {
-        return $this->role === 'client';
-    }
-
-    /**
-     * Check if user has active access
-     */
-    public function hasActiveAccess(): bool
-    {
-        if ($this->status !== 'active') {
-            return false;
-        }
-
-        if ($this->access_expires_at && $this->access_expires_at->isPast()) {
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
-     * Check if user can manage properties
-     */
     public function canManageProperties(): bool
     {
-        return $this->isAdmin() || $this->isDeveloper();
+        return in_array($this->role, ['admin', 'developer']);
+    }
+
+    public function clients(): HasMany
+    {
+        return $this->hasMany(User::class, 'developer_id');
+    }
+
+    public function developer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'developer_id');
+    }
+
+    public function accessibleProperties(): BelongsToMany
+    {
+        return $this->belongsToMany(Property::class, 'property_access', 'user_id', 'property_id')
+                    ->withPivot('granted_by')
+                    ->withTimestamps();
     }
 }

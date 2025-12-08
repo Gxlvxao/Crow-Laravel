@@ -62,12 +62,37 @@
                                        class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-150 {{ request()->routeIs('properties.my') ? 'border-accent text-white' : 'border-transparent text-gray-300 hover:text-white hover:border-gray-500' }}">
                                         Meus Imóveis
                                     </a>
+                                    <a href="{{ route('developer.clients') }}" 
+                                       class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-150 {{ request()->routeIs('developer.clients') ? 'border-accent text-white' : 'border-transparent text-gray-300 hover:text-white hover:border-gray-500' }}">
+                                        Meus Clientes
+                                    </a>
                                 @endcan
                             @endif
                         </div>
                     </div>
 
                     <div class="hidden md:flex sm:items-center sm:ml-6 gap-4">
+                        <div class="relative" x-data="{ open: false }" @click.away="open = false">
+                            <button @click="open = !open" class="flex items-center gap-1 text-gray-300 hover:text-white transition-colors">
+                                <span class="text-lg">{{ App::getLocale() == 'pt' ? '🇵🇹' : '🇬🇧' }}</span>
+                                <span class="text-xs font-bold uppercase">{{ App::getLocale() }}</span>
+                                <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </button>
+                            
+                            <div x-show="open" 
+                                 x-transition
+                                 class="absolute right-0 mt-2 w-32 bg-white rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 z-50">
+                                <a href="{{ route('language.switch', 'pt') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center justify-between">
+                                    <span>Português</span>
+                                    <span>🇵🇹</span>
+                                </a>
+                                <a href="{{ route('language.switch', 'en') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center justify-between">
+                                    <span>English</span>
+                                    <span>🇬🇧</span>
+                                </a>
+                            </div>
+                        </div>
+
                         <a href="{{ route('home') }}" class="text-gray-400 hover:text-white text-sm flex items-center gap-1 transition-colors" target="_blank">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
                             Ver Site
@@ -146,6 +171,14 @@
                         <a href="{{ route('dashboard') }}" class="block pl-3 pr-4 py-2 border-l-4 text-base font-medium {{ request()->routeIs('dashboard') ? 'border-accent text-white bg-gray-900' : 'border-transparent text-gray-300 hover:bg-gray-700 hover:text-white' }}">
                             Dashboard
                         </a>
+                        @can('manageProperties', App\Models\User::class)
+                            <a href="{{ route('properties.my') }}" class="block pl-3 pr-4 py-2 border-l-4 text-base font-medium {{ request()->routeIs('properties.my') ? 'border-accent text-white bg-gray-900' : 'border-transparent text-gray-300 hover:bg-gray-700 hover:text-white' }}">
+                                Meus Imóveis
+                            </a>
+                            <a href="{{ route('developer.clients') }}" class="block pl-3 pr-4 py-2 border-l-4 text-base font-medium {{ request()->routeIs('developer.clients') ? 'border-accent text-white bg-gray-900' : 'border-transparent text-gray-300 hover:bg-gray-700 hover:text-white' }}">
+                                Meus Clientes
+                            </a>
+                        @endcan
                     @endif
                 </div>
                 <div class="pt-4 pb-1 border-t border-gray-700">

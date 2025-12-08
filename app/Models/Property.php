@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Property extends Model
@@ -15,7 +16,7 @@ class Property extends Model
         'user_id',
         'title',
         'description',
-        'cover_image', // NOVO
+        'cover_image',
         'type',
         'transaction_type',
         'condition',
@@ -58,20 +59,50 @@ class Property extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    // Scopes (mantidos iguais para manter a lógica de filtro)
+    public function allowedUsers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'property_access', 'property_id', 'user_id')
+                    ->withPivot('granted_by')
+                    ->withTimestamps();
+    }
+
+    public function scopeVisibleForUser($query, User $user)
+    {
+        if ($user->isAdmin()) {
+            return $query;
+        }
+
+        if ($user->role === 'developer') {
+            return $query->where('user_id', $user->id);
+        }
+
+        return $query->where(function ($q) use ($user) {
+            $q->where(function ($sub) {
+                $sub->where('is_exclusive', false)
+                    ->where('status', 'active');
+            })
+            ->orWhereHas('allowedUsers', function ($access) use ($user) {
+                $access->where('user_id', $user->id);
+            });
+        });
+    }
+
     public function scopePublic($query)
     {
-        return $query->where('is_exclusive', false)->where('status', 'published');
+        return $query->where('is_exclusive', false)
+                    ->where('status', 'active');
     }
 
     public function scopeExclusive($query)
     {
-        return $query->where('is_exclusive', true)->where('status', 'published');
+        return $query->where('is_exclusive', true)
+                    ->where('status', 'active');
     }
 
     public function scopeFeatured($query)
     {
-        return $query->where('is_featured', true)->where('status', 'published');
+        return $query->where('is_featured', true)
+                    ->where('status', 'active');
     }
 
     public function scopeByCity($query, $city)
@@ -101,7 +132,12 @@ class Property extends Model
 
     public function isPublished(): bool
     {
-        return $this->status === 'published';
+        return $this->status === 'active';
+    }
+
+    public function isExclusive(): bool
+    {
+        return $this->is_exclusive;
     }
 
     public function getFormattedPriceAttribute(): string
@@ -109,19 +145,20 @@ class Property extends Model
         return '€ ' . number_format($this->price, 0, ',', '.');
     }
 
-    // Retorna a URL do Embed para o vídeo
+    public function getFirstImageAttribute(): ?string
+    {
+        return $this->images[0] ?? null;
+    }
+    
     public function getVideoEmbedAttribute(): ?string
     {
         if (!$this->video_url) return null;
 
-        // Suporte para YouTube
         if (str_contains($this->video_url, 'youtube.com') || str_contains($this->video_url, 'youtu.be')) {
-            // Extrai o ID do vídeo
             preg_match('/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/', $this->video_url, $matches);
             return isset($matches[1]) ? "https://www.youtube.com/embed/{$matches[1]}" : null;
         }
 
-        // Suporte para Vimeo
         if (str_contains($this->video_url, 'vimeo.com')) {
             $videoId = (int) substr(parse_url($this->video_url, PHP_URL_PATH), 1);
             return "https://player.vimeo.com/video/{$videoId}";
