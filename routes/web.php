@@ -11,9 +11,7 @@ Route::get('/', function () {
 })->name('home');
 
 Route::get('language/{locale}', function ($locale) {
-    if (! in_array($locale, ['en', 'pt'])) {
-        abort(400);
-    }
+    if (! in_array($locale, ['en', 'pt'])) abort(400);
     session(['locale' => $locale]);
     return redirect()->back()->withCookie(cookie('crow_locale', $locale, 525600));
 })->name('language.switch');
@@ -22,12 +20,9 @@ Route::get('/properties', [PropertyController::class, 'index'])->name('propertie
 Route::post('/properties/{property}/visit', [PropertyController::class, 'sendVisitRequest'])->name('properties.visit');
 Route::post('/access-request', [App\Http\Controllers\AccessRequestController::class, 'store'])->name('access-request.store');
 
-// ADICIONADO 'active_access' AQUI NO MIDDLEWARE
 Route::middleware(['auth', 'active_access'])->group(function () {
     Route::get('/dashboard', function () {
-        if (auth()->user()->role === 'admin') {
-            return redirect()->route('admin.dashboard');
-        }
+        if (auth()->user()->role === 'admin') return redirect()->route('admin.dashboard');
         return view('dashboard');
     })->name('dashboard');
 
@@ -46,6 +41,8 @@ Route::middleware(['auth', 'active_access'])->group(function () {
         Route::get('/my-clients', [DeveloperController::class, 'index'])->name('developer.clients');
         Route::post('/my-clients', [DeveloperController::class, 'store'])->name('developer.clients.store');
         Route::patch('/my-clients/{client}/toggle', [DeveloperController::class, 'toggleClientStatus'])->name('developer.clients.toggle');
+        // NOVA ROTA
+        Route::patch('/my-clients/{client}/toggle-market', [DeveloperController::class, 'toggleMarketAccess'])->name('developer.clients.toggle-market');
         Route::delete('/my-clients/{client}', [DeveloperController::class, 'destroy'])->name('developer.clients.destroy');
         
         Route::get('/properties/{property}/access-list', [PropertyController::class, 'getAccessList'])->name('properties.access-list');

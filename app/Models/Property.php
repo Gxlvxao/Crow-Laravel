@@ -68,22 +68,32 @@ class Property extends Model
 
     public function scopeVisibleForUser($query, User $user)
     {
+        // 1. Admin vê tudo
         if ($user->isAdmin()) {
             return $query;
         }
 
+        // 2. Developer vê seus próprios + Públicos de outros? (Por enquanto, focamos nos seus)
+        // Ajuste: Developer deve ver seus próprios imóveis sempre.
         if ($user->role === 'developer') {
             return $query->where('user_id', $user->id);
         }
 
+        // 3. Cliente (Lógica de Private Equity)
         return $query->where(function ($q) use ($user) {
-            $q->where(function ($sub) {
-                $sub->where('is_exclusive', false)
-                    ->where('status', 'active');
-            })
-            ->orWhereHas('allowedUsers', function ($access) use ($user) {
+            
+            // a) Sempre vê o que foi explicitamente compartilhado com ele (Access List)
+            $q->whereHas('allowedUsers', function ($access) use ($user) {
                 $access->where('user_id', $user->id);
             });
+
+            // b) Se ele tiver permissão de "Mercado Aberto", vê os públicos
+            if ($user->can_view_all_properties) {
+                $q->orWhere(function ($sub) {
+                    $sub->where('is_exclusive', false)
+                        ->where('status', 'active');
+                });
+            }
         });
     }
 

@@ -22,6 +22,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'role',
         'status',
         'developer_id',
+        'can_view_all_properties', // NOVO
     ];
 
     protected $hidden = [
@@ -32,6 +33,7 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'can_view_all_properties' => 'boolean', // NOVO
     ];
 
     public function isAdmin(): bool
