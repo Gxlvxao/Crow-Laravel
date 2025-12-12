@@ -64,7 +64,7 @@ class PropertyController extends Controller
             'land_area' => 'nullable|numeric|min:0',
             'year_built' => 'nullable|integer|min:1800|max:' . date('Y'),
             'energy_rating' => 'nullable|string|max:5',
-            'video_url' => 'nullable|url',
+            'video_url' => ['nullable', 'url', 'regex:/(youtube\.com|youtu\.be|vimeo\.com)/'],
             'whatsapp' => 'nullable|string|max:20',
             'features' => 'nullable|array',
             'is_exclusive' => 'nullable|boolean',
@@ -84,7 +84,6 @@ class PropertyController extends Controller
 
         $validated['user_id'] = Auth::id();
         
-        // MODERAÇÃO: Apenas Admin publica direto. Developers vão para revisão.
         if (Auth::user()->isAdmin()) {
             $validated['status'] = 'active';
         } else {
@@ -105,7 +104,6 @@ class PropertyController extends Controller
 
     public function show(Property $property)
     {
-        // Se for o dono ou admin, vê mesmo se estiver pending_review
         if (Auth::check() && (Auth::id() === $property->user_id || Auth::user()->isAdmin())) {
             return view('properties.show', compact('property'));
         }
@@ -130,10 +128,6 @@ class PropertyController extends Controller
     {
         if (!Auth::user()->canManageProperties() || (Auth::id() !== $property->user_id && !Auth::user()->isAdmin())) abort(403);
 
-        // Se for developer, não pode setar status 'active' manualmente se estava 'pending' ou 'draft'
-        // Mas vamos simplificar: se ele editar, mantém o status atual (ou volta pra pending se quiser ser rigoroso)
-        // Por hora, vamos confiar na validação do campo status abaixo.
-        
         $rules = [
             'title' => 'required|string|max:255',
             'description' => 'required|string',
@@ -153,26 +147,18 @@ class PropertyController extends Controller
             'land_area' => 'nullable|numeric|min:0',
             'year_built' => 'nullable|integer|min:1800|max:' . date('Y'),
             'energy_rating' => 'nullable|string|max:5',
-            'video_url' => 'nullable|url',
+            'video_url' => ['nullable', 'url', 'regex:/(youtube\.com|youtu\.be|vimeo\.com)/'],
             'whatsapp' => 'nullable|string|max:20',
             'features' => 'nullable|array',
             'is_exclusive' => 'nullable|boolean',
             'delete_images' => 'nullable|array',
+            'status' => 'required|in:draft,active,negotiating,sold,pending_review'
         ];
-
-        // Se for Admin, pode mudar status livremente. Se for Dev, tem restrições.
-        if (Auth::user()->isAdmin()) {
-            $rules['status'] = 'required|in:draft,active,negotiating,sold,pending_review';
-        } else {
-            // Dev não pode aprovar a si mesmo (mudar para active), mas pode mudar para draft ou negotiating se já estiver aprovado
-            $rules['status'] = 'required|in:draft,active,negotiating,sold,pending_review';
-        }
 
         $validated = $request->validate($rules);
 
-        // Proteção extra: Se Dev tentar forçar 'active' num imóvel que era 'pending', bloqueia
-        if (!Auth::user()->isAdmin() && $property->status === 'pending_review' && $request->status === 'active') {
-             $validated['status'] = 'pending_review'; // Força manter pendente
+        if (!Auth::user()->isAdmin()) {
+             $validated['status'] = 'pending_review';
         }
 
         if ($request->hasFile('cover_image')) {
@@ -200,18 +186,25 @@ class PropertyController extends Controller
 
         $property->update($validated);
 
-        return redirect()->route('properties.show', $property)->with('success', 'Imóvel atualizado!');
+        $msg = (!Auth::user()->isAdmin()) 
+            ? 'Imóvel atualizado e enviado para revisão.' 
+            : 'Imóvel atualizado!';
+
+        return redirect()->route('properties.show', $property)->with('success', $msg);
     }
 
     public function destroy(Property $property)
     {
         if (!Auth::user()->canManageProperties() || (Auth::id() !== $property->user_id && !Auth::user()->isAdmin())) abort(403);
+        
+        // HARD DELETE: Apagar imagens fisicamente
         if ($property->cover_image) Storage::disk('public')->delete($property->cover_image);
         if ($property->images) {
             foreach ($property->images as $image) Storage::disk('public')->delete($image);
         }
+        
         $property->delete();
-        return redirect()->route('properties.index')->with('success', 'Imóvel excluído!');
+        return redirect()->route('properties.index')->with('success', 'Imóvel excluído permanentemente!');
     }
 
     public function myProperties()
@@ -230,16 +223,23 @@ class PropertyController extends Controller
             'preferred_date' => 'required|string',
             'message' => 'nullable|string',
         ]);
+        
         $recipient = $property->owner->email ?? 'admin@crowglobal.com';
-        // Mail::to($recipient)->send(new VisitRequestMail($property, $validated));
-        return redirect()->back()->with('success', 'Sua solicitação de visita foi enviada! Entraremos em contato em breve.');
+        Mail::to($recipient)->send(new VisitRequestMail($property, $validated));
+        
+        return redirect()->back()->with('success', 'Sua solicitação de visita foi enviada! O responsável entrará em contato.');
     }
 
     public function getAccessList(Property $property)
     {
         if (!Auth::user()->canManageProperties()) abort(403);
         
-        $clients = Auth::user()->clients;
+        if (Auth::user()->isAdmin()) {
+            $clients = User::where('role', 'client')->orderBy('name')->get();
+        } else {
+            $clients = User::where('developer_id', Auth::id())->orderBy('name')->get();
+        }
+
         $allowedIds = $property->allowedUsers()->pluck('users.id')->toArray();
 
         return response()->json([

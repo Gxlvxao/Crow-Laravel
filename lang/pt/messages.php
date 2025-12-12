@@ -20,6 +20,11 @@ return [
     'privacy' => 'Privacidade',
     'rights_reserved' => 'Todos os direitos reservados.',
 
+    // Emails Subjects
+    'property_approved_subject' => 'Seu imóvel foi aprovado!',
+    'access_approved_subject' => 'Bem-vindo à Crow Global!',
+    'access_rejected_subject' => 'Atualização sobre sua solicitação de acesso',
+
     // Welcome / Home
     'hero_title_1' => 'CROW',
     'hero_title_2' => 'GLOBAL',

@@ -65,7 +65,6 @@ class DeveloperController extends Controller
         return redirect()->back()->with('success', "Visibilidade alterada para: {$status}");
     }
 
-    // NOVO: Resetar Senha
     public function resetClientPassword(User $client)
     {
         if ($client->developer_id !== Auth::id()) abort(403);
@@ -92,7 +91,11 @@ class DeveloperController extends Controller
             'access' => 'required|boolean'
         ]);
 
-        $user = User::find($request->user_id);
+        $user = User::findOrFail($request->user_id);
+
+        if ($user->developer_id !== Auth::id() && !Auth::user()->isAdmin()) {
+            abort(403);
+        }
 
         if ($user->status !== 'active') {
             return response()->json(['message' => 'Cliente inativo.'], 403);

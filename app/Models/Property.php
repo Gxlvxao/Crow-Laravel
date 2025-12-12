@@ -6,11 +6,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\SoftDeletes;
+// use Illuminate\Database\Eloquent\SoftDeletes; <--- REMOVIDO
 
 class Property extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory; // SoftDeletes REMOVIDO
 
     protected $fillable = [
         'user_id',
@@ -68,31 +68,24 @@ class Property extends Model
 
     public function scopeVisibleForUser($query, User $user)
     {
-        // 1. Admin vê tudo
         if ($user->isAdmin()) {
             return $query;
         }
 
-        // 2. Developer vê seus próprios + Públicos de outros? (Por enquanto, focamos nos seus)
-        // Ajuste: Developer deve ver seus próprios imóveis sempre.
         if ($user->role === 'developer') {
-            return $query->where('user_id', $user->id);
+            return $query->where(function($q) use ($user) {
+                $q->where('user_id', $user->id)
+                  ->orWhere('status', 'active');
+            });
         }
 
-        // 3. Cliente (Lógica de Private Equity)
         return $query->where(function ($q) use ($user) {
-            
-            // a) Sempre vê o que foi explicitamente compartilhado com ele (Access List)
             $q->whereHas('allowedUsers', function ($access) use ($user) {
                 $access->where('user_id', $user->id);
             });
 
-            // b) Se ele tiver permissão de "Mercado Aberto", vê os públicos
             if ($user->can_view_all_properties) {
-                $q->orWhere(function ($sub) {
-                    $sub->where('is_exclusive', false)
-                        ->where('status', 'active');
-                });
+                $q->orWhere('status', 'active');
             }
         });
     }

@@ -22,8 +22,19 @@ Route::post('/access-request', [App\Http\Controllers\AccessRequestController::cl
 
 Route::middleware(['auth', 'active_access'])->group(function () {
     Route::get('/dashboard', function () {
-        if (auth()->user()->role === 'admin') return redirect()->route('admin.dashboard');
-        return view('dashboard');
+        $user = auth()->user();
+        if ($user->role === 'admin') return redirect()->route('admin.dashboard');
+        
+        $exclusiveProperties = collect([]);
+        
+        if ($user->role === 'client') {
+            $exclusiveProperties = $user->accessibleProperties()
+                                        ->with('owner')
+                                        ->where('status', 'active')
+                                        ->get();
+        }
+        
+        return view('dashboard', compact('exclusiveProperties'));
     })->name('dashboard');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -61,11 +72,9 @@ Route::middleware(['auth', 'active_access'])->group(function () {
         Route::patch('/exclusive-requests/{user}/approve', [AdminController::class, 'approveExclusiveRequest'])->name('exclusive-requests.approve');
         Route::delete('/exclusive-requests/{user}/reject', [AdminController::class, 'rejectExclusiveRequest'])->name('exclusive-requests.reject');
 
-        // --- ROTAS DE APROVAÇÃO DE IMÓVEIS (FALTAVAM AQUI) ---
         Route::get('/properties/pending', [AdminController::class, 'pendingProperties'])->name('properties.pending');
         Route::patch('/properties/{property}/approve-listing', [AdminController::class, 'approveProperty'])->name('properties.approve-listing');
         Route::patch('/properties/{property}/reject-listing', [AdminController::class, 'rejectProperty'])->name('properties.reject-listing');
-        // -----------------------------------------------------
 
         Route::patch('/users/{user}/toggle-status', [AdminController::class, 'toggleUserStatus'])->name('users.toggle-status');
         Route::patch('/users/{user}/reset-password', [AdminController::class, 'resetUserPassword'])->name('users.reset-password');

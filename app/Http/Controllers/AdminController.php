@@ -8,7 +8,11 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str; // <--- CORRIGIDO AQUI (Era Support\Facades\Str)
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\PropertyApprovedMail;
+use App\Mail\AccessApprovedMail;
+use App\Mail\AccessRejectedMail;
 
 class AdminController extends Controller
 {
@@ -52,6 +56,11 @@ class AdminController extends Controller
     public function approveProperty(Property $property)
     {
         $property->update(['status' => 'active']);
+        
+        if ($property->owner) {
+            Mail::to($property->owner->email)->send(new PropertyApprovedMail($property));
+        }
+
         return redirect()->back()->with('success', 'Imóvel aprovado e publicado!');
     }
 
@@ -85,6 +94,7 @@ class AdminController extends Controller
     public function approveExclusiveRequest(User $user)
     {
         $user->update(['status' => 'active']);
+        Mail::to($user->email)->send(new AccessApprovedMail($user));
         return redirect()->back()->with('success', 'Cliente aprovado! O Developer já pode conceder acessos.');
     }
 
@@ -109,6 +119,7 @@ class AdminController extends Controller
         $message = 'Pedido aprovado com sucesso!';
 
         $user = $accessRequest->user ?? User::where('email', $accessRequest->email)->first();
+        $password = null;
 
         if ($user) {
             $user->update([
@@ -122,12 +133,12 @@ class AdminController extends Controller
             
             $message .= " Perfil vinculado.";
         } else {
-            $tempPassword = Str::random(10);
+            $password = Str::random(10);
             
             $user = User::create([
                 'name' => $accessRequest->name,
                 'email' => $accessRequest->email,
-                'password' => Hash::make($tempPassword),
+                'password' => Hash::make($password),
                 'role' => $role,
                 'status' => 'active',
                 'email_verified_at' => now(),
@@ -135,7 +146,7 @@ class AdminController extends Controller
 
             $accessRequest->user_id = $user->id;
             
-            $message .= " Usuário criado. SENHA TEMPORÁRIA: {$tempPassword}";
+            $message .= " Usuário criado.";
         }
 
         $accessRequest->status = 'approved';
@@ -143,6 +154,8 @@ class AdminController extends Controller
         $accessRequest->reviewed_by = auth()->id();
         $accessRequest->requested_role = $role;
         $accessRequest->save();
+
+        Mail::to($user->email)->send(new AccessApprovedMail($user, $password));
 
         return redirect()->back()->with('success', $message);
     }
@@ -159,6 +172,8 @@ class AdminController extends Controller
             'reviewed_by' => auth()->id(),
             'rejection_reason' => $validated['rejection_reason'] ?? null,
         ]);
+
+        Mail::to($accessRequest->email)->send(new AccessRejectedMail($accessRequest));
 
         return redirect()->back()->with('success', 'Pedido rejeitado.');
     }
@@ -187,7 +202,7 @@ class AdminController extends Controller
         if ($user->id === auth()->id()) {
             return redirect()->back()->with('error', 'Ação não permitida.');
         }
-        $user->delete();
+        $user->delete(); // Já é permanente (User não tem SoftDeletes)
         return redirect()->back()->with('success', 'Usuário excluído.');
     }
 
@@ -209,10 +224,12 @@ class AdminController extends Controller
 
     public function deleteProperty(Property $property)
     {
+        // HARD DELETE: Limpar imagens
+        if ($property->cover_image) Storage::disk('public')->delete($property->cover_image);
         if ($property->images) {
             foreach ($property->images as $image) Storage::disk('public')->delete($image);
         }
         $property->delete();
-        return redirect()->back()->with('success', 'Imóvel excluído!');
+        return redirect()->back()->with('success', 'Imóvel excluído permanentemente!');
     }
 }

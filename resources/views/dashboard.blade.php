@@ -22,7 +22,7 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 
                 <div class="bg-white overflow-hidden shadow-sm rounded-xl border border-gray-100 p-6 hover:shadow-md transition-shadow">
                     <div class="flex items-center gap-4 mb-4">
@@ -70,6 +70,45 @@
                     <button class="text-accent font-medium text-sm hover:underline cursor-not-allowed opacity-50">{{ __('messages.support') }} (VIP)</button>
                 </div>
             </div>
+
+            @if(isset($exclusiveProperties) && count($exclusiveProperties) > 0)
+                <div class="mb-6">
+                    <h3 class="text-2xl font-bold font-heading text-graphite mb-4">Imóveis Partilhados Consigo</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        @foreach($exclusiveProperties as $property)
+                            <div class="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow border border-gray-100 group">
+                                <div class="relative h-48 overflow-hidden">
+                                    <img src="{{ asset('storage/' . ($property->cover_image ?? 'properties/default.jpg')) }}" alt="{{ $property->title }}" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500">
+                                    <div class="absolute top-4 right-4 bg-accent text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">
+                                        Exclusivo
+                                    </div>
+                                </div>
+                                <div class="p-6">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <div>
+                                            <p class="text-sm text-accent font-medium">{{ $property->city }}</p>
+                                            <h4 class="text-lg font-bold text-graphite line-clamp-1">{{ $property->title }}</h4>
+                                        </div>
+                                        <p class="text-lg font-bold text-graphite">{{ $property->formatted_price }}</p>
+                                    </div>
+                                    <div class="flex items-center gap-4 text-gray-500 text-sm mb-4">
+                                        <div class="flex items-center gap-1">
+                                            <span>{{ $property->bedrooms }}</span> <span class="text-xs">Quartos</span>
+                                        </div>
+                                        <div class="flex items-center gap-1">
+                                            <span>{{ $property->area }}</span> <span class="text-xs">m²</span>
+                                        </div>
+                                    </div>
+                                    <a href="{{ route('properties.show', $property) }}" class="block w-full text-center bg-graphite text-white py-2 rounded-lg hover:bg-black transition-colors">
+                                        Ver Detalhes
+                                    </a>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
         </div>
     </div>
 </x-app-layout>
